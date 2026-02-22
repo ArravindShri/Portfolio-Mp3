@@ -1,0 +1,37 @@
+CREATE VIEW Course_category_completion AS 
+SELECT student_id, student_name, [Programming], [Data Science],[Business],[Design],[Marketing]
+FROM ( 
+
+SELECT 
+    e.student_id, 
+    s.student_name, 
+    c.category,
+    e.course_id
+FROM enrollments e
+JOIN students s ON e.student_id = s.student_id
+JOIN courses c ON e.course_id = c.course_id
+WHERE e.status = 'Completed'
+) as SourceTable
+
+PIVOT (
+    COUNT(course_id)
+    FOR category IN([Programming], [Data Science],[Business],[Design],[Marketing])
+) AS FinalPivot;
+
+
+Project Documentation: Transformation #2 – The PIVOT Matrix
+1. The Business Objective
+The goal was to transform normalized e-learning enrollment data into a high-level executive dashboard. Management required a matrix view to see exactly how many courses each student completed across five key categories: Programming, Data Science, Business, Design, and Marketing.
+
+2. Technical Challenges & Debugging
+During development, several "real-world" SQL hurdles were encountered and resolved:
+
+Data Fragmentation: Information was spread across enrollments, students, and courses. I resolved this by constructing a three-way INNER JOIN to create a unified source subquery.
+
+The "Swallowed Column" Quirk (Msg 207): Initially, counting student_id caused the PIVOT engine to "consume" that column for the calculation, making it unavailable as a row label.
+
+Solution: I implemented a "Sacrificial Column" strategy by adding course_id to the source query specifically for the COUNT() function, preserving student_id and student_name as row headers.
+
+Syntax Strictness: Faced errors related to T-SQL's rigid PIVOT syntax, specifically regarding case-sensitivity of column aliases and the nesting of parentheses within the IN clause.
+
+Solution: Standardized all aliases to lowercase and applied "parentheses hardening" to ensure the IN list was correctly scoped within the PIVOT block.
