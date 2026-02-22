@@ -1,0 +1,71 @@
+CREATE VIEW Risk_report as 
+WITH Student_activity AS ( 
+	SELECT 
+		enrollment_id,
+		MAX(activity_date) as latest_activity,
+		DATEDIFF(day,MAX(activity_date),GETDATE()) as Gap
+	FROM course_activities
+	GROUP BY enrollment_id
+),
+
+Student_progress AS (
+	SELECT 
+		student_id,
+		enrollment_id,
+		progress_percentage,
+		DATEDIFF(day,enrollment_date,GETDATE()) as Days_since_enrollment
+		From enrollments
+		WHERE Status = 'In Progress'
+),
+
+Student_drops AS(
+SELECT student_id, COUNT(status) as dropped_count
+FROM enrollments 
+WHERE status= 'Dropped'
+GROUP BY student_id
+),
+
+Students_performance AS (
+SELECT enrollment_id, AVG(Score) as avg_score
+FROM course_activities
+WHERE score is not null
+GROUP BY enrollment_id
+)
+SELECT 
+    p.student_id,
+    s.student_name,
+    CASE 
+        WHEN ISNULL(a.Gap, 0) > 14 THEN 'Inactive for 14+ days'
+        WHEN p.progress_percentage < 25 AND p.days_since_enrollment > 30 THEN 'Slow progress'
+        WHEN ISNULL(d.dropped_count, 0) >= 2 THEN 'Multiple course drops'
+        WHEN ISNULL(perf.avg_score, 0) < 60 AND ISNULL(perf.avg_score, 0) > 0 THEN 'Low performance'
+        ELSE 'Not at risk'
+    END AS risk_reason
+FROM Student_progress p
+JOIN students s ON p.student_id = s.student_id
+LEFT JOIN Student_activity a ON p.enrollment_id = a.enrollment_id
+LEFT JOIN Student_drops d ON p.student_id = d.student_id
+LEFT JOIN Students_performance perf ON p.enrollment_id = perf.enrollment_id;
+
+
+Project Documentation: Transformation #5 – At-Risk Student Identification
+1. The Business Objective
+The primary goal was to build a proactive retention tool that identifies students who are struggling or disengaging before they officially drop out. The "At-Risk" report evaluates students based on four high-priority behavioral and academic dimensions: engagement frequency, course progress velocity, historical persistence, and academic performance.
+
+2. Technical Architecture & Logic
+To maintain code readability and performance, I implemented a Modular CTE (Common Table Expression) Architecture. This allowed for each risk criterion to be calculated in its own "engine" before being synthesized in the final output.
+
+Criteria 1: Low Engagement: Identified students with no recorded activity within the last 14 days using MAX(activity_date) and DATEDIFF.
+
+Criteria 2: Poor Progress: Targeted "stagnant" students who have been enrolled for over 30 days but have completed less than 25% of the course content.
+
+Criteria 3: Multiple Drops: Identified behavioral patterns by flagging students with two or more "Dropped" statuses in the enrollments table.
+
+Criteria 4: Low Performance: Flagged students with an average quiz or assignment score below 60%.
+
+3. Hurdles & Advanced Solutions
+The "Vanishing Student" Problem: A standard JOIN would have excluded students who hadn't yet taken a quiz or dropped a course. I utilized LEFT JOINs starting from the "In Progress" population to ensure every current student remained in the report.
+
+Data Normalization with ISNULL: Since LEFT JOINs produce NULL values for missing data, I used the ISNULL() function to convert those blanks into readable zeros for the "Days Since Activity" and "Dropped Count" columns.
+
+Sequential Logic Priority: In the CASE WHEN statement for risk_reason, I structured the conditions hierarchically so that the most urgent intervention (Inactivity) is displayed first if multiple risks apply.
