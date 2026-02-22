@@ -1,0 +1,27 @@
+CREATE VIEW Daily_enrollments AS 
+SELECT 
+    enrollment_date,
+    daily_enrollments,
+    SUM(daily_enrollments) OVER (ORDER BY enrollment_date) AS running_total,
+    AVG(daily_enrollments) OVER (
+    ORDER BY enrollment_date
+    ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+) AS moving_avg_7day
+FROM (
+   SELECT 
+    enrollment_date, 
+    COUNT(enrollment_id) AS daily_enrollments
+FROM enrollments
+GROUP BY enrollment_date
+) AS DailyStats;
+
+Project Documentation: Transformation #4 – Running Totals & Cumulative Enrollment
+1. The Business Objective
+To visualize growth momentum, management required a "Daily Velocity" report. The goal was to display two metrics side-by-side: the number of new student enrollments occurring each day and the Cumulative Total of all enrollments from the project's start date to the present.
+
+2. Technical Challenges & Debugging
+The Aggregation Conflict (Msg 8120): I initially encountered an error when trying to perform a Window Function (SUM OVER) and a GROUP BY in the same logical step. SQL Server cannot simultaneously "collapse" rows for a date count and "expand" them for a running total in a single operation.
+
+Window Ordering: A running total is meaningless without a strict chronological sequence. I utilized ORDER BY enrollment_date within the window to ensure the accumulation followed the calendar.
+
+Invalid Summation: An early iteration attempted to SUM(enrollment_date), which resulted in a data type error. I resolved this by first counting the enrollment_id to create a numeric value that could be mathematically accumulated.
