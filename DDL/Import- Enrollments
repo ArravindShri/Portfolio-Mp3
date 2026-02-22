@@ -1,0 +1,79 @@
+-- =====================================================
+-- SCRIPT 5: ENROLLMENTS DATA IMPORT
+-- =====================================================
+-- Project: E-Learning Platform Analytics
+-- Author: Arravind Shri
+-- Date: February 22, 2026
+-- Description: Import 25,000 enrollment records
+-- Method: STAGING TABLE APPROACH (handles NULL values and data type mismatches)
+-- =====================================================
+
+USE ELearning_Analytics;
+GO
+
+-- -----------------------------------------------
+-- STEP 1: Create Staging Table (all VARCHAR)
+-- -----------------------------------------------
+CREATE TABLE enrollments_staging (
+    enrollment_id VARCHAR(15),
+    student_id VARCHAR(10),
+    course_id VARCHAR(10),
+    enrollment_date VARCHAR(50),
+    completion_date VARCHAR(50),    -- VARCHAR to handle empty values
+    status VARCHAR(20),
+    progress_percentage VARCHAR(10),
+    final_score VARCHAR(10)         -- VARCHAR to handle empty values
+);
+
+-- -----------------------------------------------
+-- STEP 2: BULK INSERT into Staging
+-- -----------------------------------------------
+BULK INSERT enrollments_staging
+FROM 'C:\Mac\Home\Desktop\Data Analysis\ Mock Projects\MP-2\files (1)\enrollments.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK,
+    FORMAT = 'CSV'
+);
+
+-- -----------------------------------------------
+-- STEP 3: Clean & Insert into Final Table
+-- -----------------------------------------------
+INSERT INTO enrollments (
+    enrollment_id, student_id, course_id, enrollment_date,
+    completion_date, status, progress_percentage, final_score
+)
+SELECT 
+    enrollment_id,
+    student_id,
+    course_id,
+    CAST(enrollment_date AS DATE),
+    -- Handle NULL completion dates
+    CASE WHEN completion_date = '' THEN NULL 
+         ELSE CAST(completion_date AS DATE) END,
+    status,
+    CAST(progress_percentage AS INT),
+    -- Handle NULL scores + convert FLOAT to INT
+    CASE WHEN final_score = '' THEN NULL 
+         ELSE CAST(CAST(final_score AS FLOAT) AS INT) END
+FROM enrollments_staging;
+
+-- -----------------------------------------------
+-- STEP 4: Drop Staging Table
+-- -----------------------------------------------
+DROP TABLE enrollments_staging;
+
+-- -----------------------------------------------
+-- VERIFY IMPORT
+-- -----------------------------------------------
+SELECT COUNT(*) AS total_enrollments FROM enrollments;
+-- Expected: 25,000 rows
+
+-- Check status distribution
+SELECT status, COUNT(*) as count
+FROM enrollments
+GROUP BY status;
+
+-- =====================================================
