@@ -1,0 +1,32 @@
+-- =====================================================
+-- SCRIPT 2: STUDENTS DATA IMPORT
+-- =====================================================
+-- Project: E-Learning Platform Analytics
+-- Author: Arravind Shri
+-- Date: February 22, 2026
+-- Description: Import 10,000 student records
+-- Method: Direct BULK INSERT
+-- =====================================================
+
+USE ELearning_Analytics;
+GO
+
+-- Import Students (10,000 rows)
+BULK INSERT students
+FROM 'C:\Mac\Home\Desktop\Data Analysis\ Mock Projects\MP-2\files (1)\students.csv'
+WITH (
+    FIRSTROW = 2,              -- Skip header row
+    FIELDTERMINATOR = ',',      -- CSV comma-separated
+    ROWTERMINATOR = '0x0a',     -- Universal line ending
+    TABLOCK,                    -- Performance optimization
+    FORMAT = 'CSV'              -- Explicit CSV format
+);
+
+-- Verify import
+SELECT COUNT(*) AS total_students FROM students;
+-- Expected: 10,000 rows
+
+-- Sample data check
+SELECT TOP 5 * FROM students;
+
+-- =====================================================
