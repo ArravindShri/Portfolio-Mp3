@@ -1,0 +1,106 @@
+-- =====================================================
+-- SCRIPT 7: REVIEWS DATA IMPORT
+-- =====================================================
+-- Project: E-Learning Platform Analytics
+-- Author: Arravind Shri
+-- Date: February 22, 2026
+-- Description: Import 15,000 review records
+-- Method: STAGING TABLE APPROACH
+-- =====================================================
+
+USE ELearning_Analytics;
+GO
+
+-- -----------------------------------------------
+-- STEP 1: Create Staging Table (all VARCHAR)
+-- -----------------------------------------------
+CREATE TABLE reviews_staging (
+    review_id VARCHAR(15),
+    enrollment_id VARCHAR(15),
+    student_id VARCHAR(15),
+    course_id VARCHAR(15),
+    rating VARCHAR(20),
+    review_text VARCHAR(500),
+    review_date VARCHAR(20)
+);
+
+-- -----------------------------------------------
+-- STEP 2: BULK INSERT into Staging
+-- -----------------------------------------------
+BULK INSERT reviews_staging
+FROM 'C:\Mac\Home\Desktop\Data Analysis\ Mock Projects\MP-2\files (1)\reviews.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK,
+    FORMAT = 'CSV'
+);
+
+-- -----------------------------------------------
+-- STEP 3: Clean & Insert into Final Table
+-- -----------------------------------------------
+INSERT INTO reviews (
+    review_id, enrollment_id, student_id, course_id,
+    rating, review_text, review_date
+)
+SELECT 
+    review_id,
+    enrollment_id,
+    student_id,
+    course_id,
+    CAST(rating AS INT),
+    review_text,
+    CAST(review_date AS DATE)
+FROM reviews_staging;
+
+-- -----------------------------------------------
+-- STEP 4: Drop Staging Table
+-- -----------------------------------------------
+DROP TABLE reviews_staging;
+
+-- -----------------------------------------------
+-- VERIFY IMPORT
+-- -----------------------------------------------
+SELECT COUNT(*) AS total_reviews FROM reviews;
+-- Expected: ~15,000 rows
+
+-- Check rating distribution
+SELECT rating, COUNT(*) as count
+FROM reviews
+GROUP BY rating
+ORDER BY rating;
+
+-- =====================================================
+-- FINAL VERIFICATION: ALL TABLES
+-- =====================================================
+SELECT 'students' AS table_name, COUNT(*) AS row_count FROM students
+UNION ALL
+SELECT 'instructors', COUNT(*) FROM instructors
+UNION ALL
+SELECT 'courses', COUNT(*) FROM courses
+UNION ALL
+SELECT 'enrollments', COUNT(*) FROM enrollments
+UNION ALL
+SELECT 'course_activities', COUNT(*) FROM course_activities
+UNION ALL
+SELECT 'reviews', COUNT(*) FROM reviews;
+
+-- Expected Total: 160,150 rows
+-- =====================================================
+```
+
+---
+
+## **PERFECT FOR GITHUB! 📂**
+
+**Your folder structure:**
+```
+sql_scripts/
+├── 01_create_database_and_tables.sql
+├── 02_import_students.sql
+├── 03_import_instructors.sql
+├── 04_import_courses.sql
+├── 05_import_enrollments.sql
+├── 06_import_course_activities.sql
+└── 07_import_reviews.sql
