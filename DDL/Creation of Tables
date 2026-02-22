@@ -1,0 +1,113 @@
+-- =====================================================
+-- SCRIPT 1: DATABASE & TABLE CREATION
+-- =====================================================
+-- Project: E-Learning Platform Analytics
+-- Author: Arravind Shri
+-- Date: February 22, 2026
+-- Description: Creates database and all 6 base tables with relationships
+-- =====================================================
+
+-- Create Database
+CREATE DATABASE ELearning_Analytics;
+GO
+
+USE ELearning_Analytics;
+GO
+
+-- =====================================================
+-- TABLE 1: Students (10,000 records)
+-- =====================================================
+CREATE TABLE students (
+    student_id VARCHAR(10) PRIMARY KEY,
+    student_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    enrollment_date DATE NOT NULL,
+    country VARCHAR(50),
+    age_group VARCHAR(10),
+    subscription_type VARCHAR(20)
+);
+
+-- =====================================================
+-- TABLE 2: Instructors (100 records)
+-- =====================================================
+CREATE TABLE instructors (
+    instructor_id VARCHAR(10) PRIMARY KEY,
+    instructor_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    specialization VARCHAR(50),
+    rating DECIMAL(3,2),
+    years_experience INT
+);
+
+-- =====================================================
+-- TABLE 3: Courses (50 records)
+-- Self-referencing foreign key for prerequisites
+-- =====================================================
+CREATE TABLE courses (
+    course_id VARCHAR(10) PRIMARY KEY,
+    course_name VARCHAR(100) NOT NULL,
+    category VARCHAR(50),
+    difficulty_level VARCHAR(20),
+    duration_hours INT,
+    price DECIMAL(10,2),
+    instructor_id VARCHAR(10),
+    prerequisite_course_id VARCHAR(10),
+    FOREIGN KEY (instructor_id) REFERENCES instructors(instructor_id),
+    FOREIGN KEY (prerequisite_course_id) REFERENCES courses(course_id)
+);
+
+-- =====================================================
+-- TABLE 4: Enrollments - FACT TABLE (25,000 records)
+-- =====================================================
+CREATE TABLE enrollments (
+    enrollment_id VARCHAR(15) PRIMARY KEY,
+    student_id VARCHAR(10) NOT NULL,
+    course_id VARCHAR(10) NOT NULL,
+    enrollment_date DATE NOT NULL,
+    completion_date DATE,
+    status VARCHAR(20),
+    progress_percentage INT,
+    final_score INT,
+    FOREIGN KEY (student_id) REFERENCES students(student_id),
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
+);
+
+-- =====================================================
+-- TABLE 5: Course Activities (100,000 records)
+-- =====================================================
+CREATE TABLE course_activities (
+    activity_id VARCHAR(15) PRIMARY KEY,
+    enrollment_id VARCHAR(15) NOT NULL,
+    activity_date DATE NOT NULL,
+    activity_type VARCHAR(50),
+    time_spent_minutes INT,
+    score INT,
+    FOREIGN KEY (enrollment_id) REFERENCES enrollments(enrollment_id)
+);
+
+-- =====================================================
+-- TABLE 6: Reviews (15,000 records)
+-- =====================================================
+CREATE TABLE reviews (
+    review_id VARCHAR(15) PRIMARY KEY,
+    enrollment_id VARCHAR(15) NOT NULL,
+    student_id VARCHAR(10) NOT NULL,
+    course_id VARCHAR(10) NOT NULL,
+    rating INT,
+    review_text VARCHAR(500),
+    review_date DATE,
+    FOREIGN KEY (enrollment_id) REFERENCES enrollments(enrollment_id),
+    FOREIGN KEY (student_id) REFERENCES students(student_id),
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
+);
+
+-- =====================================================
+-- VERIFY TABLE CREATION
+-- =====================================================
+SELECT TABLE_NAME 
+FROM INFORMATION_SCHEMA.TABLES 
+WHERE TABLE_TYPE = 'BASE TABLE'
+ORDER BY TABLE_NAME;
+
+-- Expected: 6 tables created
+-- =====================================================
