@@ -1,0 +1,31 @@
+CREATE VIEW Student_progression as 
+SELECT 
+    e.student_id,
+    c.enrollment_id,
+    c.activity_date,
+    c.activity_type,
+    c.time_spent_minutes,
+    -- 1. Previous Type
+    LAG(c.activity_type) OVER (PARTITION BY c.enrollment_id ORDER BY c.activity_date) AS previous_activity_type,
+    -- 2. Previous Date
+    LAG(c.activity_date) OVER (PARTITION BY c.enrollment_id ORDER BY c.activity_date) AS previous_activity_date,
+    -- 3. Next Type
+    LEAD(c.activity_type) OVER (PARTITION BY c.enrollment_id ORDER BY c.activity_date) AS next_activity_type,
+    -- 4. Next Date
+    LEAD(c.activity_date) OVER (PARTITION BY c.enrollment_id ORDER BY c.activity_date) AS next_activity_date,
+    -- 5. Days Since Last (The Calculation)
+    DATEDIFF(day, LAG(c.activity_date) OVER (PARTITION BY c.enrollment_id ORDER BY c.activity_date), c.activity_date) AS days_since_last_activity
+FROM course_activities c
+JOIN enrollments e ON c.enrollment_id = e.enrollment_id;
+
+1. The Business Objective
+To understand the "learning cadence" of students, management required a chronological map of activity. The goal was to track engagement by looking at what a student did immediately before and after any given activity, specifically measuring the time gaps between these events to identify periods of inactivity or high engagement.
+
+2. Technical Challenges & Debugging
+The "Window" Scope: Without a PARTITION BY clause, the logic would have compared the last activity of one student to the first activity of another. I implemented PARTITION BY enrollment_id to ensure each "window" of calculation was isolated to a single student's course journey.
+
+Chronological Integrity: Window functions are order-dependent. I used ORDER BY activity_date within the OVER clause to ensure that "Previous" (LAG) and "Next" (LEAD) accurately represented time.
+
+Date Difference Logic: Calculating the duration between activities required using DATEDIFF. A common hurdle was ensuring the date subtraction order resulted in positive "days since" values for a more intuitive dashboard.
+
+Architectural Decision (Parent vs. Child ID): I chose to use c.enrollment_id (from the activities table) rather than the parent table ID to ensure better performance and logical consistency, as the activities table "drives" the timeline.
