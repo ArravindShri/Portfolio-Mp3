@@ -1,0 +1,40 @@
+-- =====================================================
+-- SCRIPT 4: COURSES DATA IMPORT
+-- =====================================================
+-- Project: E-Learning Platform Analytics
+-- Author: Arravind Shri
+-- Date: February 22, 2026
+-- Description: Import 50 course records with prerequisites
+-- Method: Direct BULK INSERT
+-- =====================================================
+
+USE ELearning_Analytics;
+GO
+
+-- Import Courses (50 rows)
+BULK INSERT courses
+FROM 'C:\Mac\Home\Desktop\Data Analysis\ Mock Projects\MP-2\files (1)\courses.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK,
+    FORMAT = 'CSV'
+);
+
+-- Verify import
+SELECT COUNT(*) AS total_courses FROM courses;
+-- Expected: 50 rows
+
+-- Sample data check
+SELECT TOP 5 * FROM courses;
+
+-- Check courses with prerequisites
+SELECT 
+    c1.course_name AS course,
+    c2.course_name AS prerequisite
+FROM courses c1
+LEFT JOIN courses c2 ON c1.prerequisite_course_id = c2.course_id
+WHERE c1.prerequisite_course_id IS NOT NULL;
+
+-- =====================================================
